@@ -3,16 +3,51 @@
 Module Docstring
 """
 
-__author__ = "Your Name"
 __version__ = "0.1.0"
-__license__ = "MIT"
+
+import argparse
+import logging
+import sys
+
+from cloud_platform import DBaaSAggregator
+from _globals import *
+from _logging import log
+from _logging import log_counter
 
 
-def main():
+def echo_welcome():
+    # Welcome message
+    log.info(f"** {PROG_NAME[1]}, version: {__version__} **\n")
+
+
+def script_exit(level: int = logging.INFO, msg: str = None) -> None:
+    if msg:
+        log.log(level, msg)
+    log.info(f"\n** Logging file: '{HOST_WORKDIR}/logs/data_pump.log'")
+    log.info(f"** {log_counter.counters}")
+    log.info(f"** {PROG_NAME[1]} command end **")
+    sys.exit()
+
+
+def main(args):
     """ Main entry point of the app """
-    print("hello world")
+    echo_welcome()
+    log.error('xxx')
+    script_exit()
 
 
 if __name__ == "__main__":
     """ This is executed when run from the command line """
-    main()
+    help_description = f"{PROG_NAME[1]} utility."
+    help_epilog = f"version: {__version__}."
+    parser = argparse.ArgumentParser(prog=PROG_NAME[0], description=help_description, epilog=help_epilog)
+    parser.add_argument('-d', '--debug', action='store_true', default=False, help="logs messages with level DEBUG")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-l', '--list', action='store', nargs=1, metavar='INSTANCE', help="list databases of instance")
+    group.add_argument('-m', '--map', action='store', nargs=2, metavar=('ROLE', 'INSTANCE'), help="map databases of instance")
+    group.add_argument('-e', '--export', action='store', nargs=1, metavar='INSTANCE', help="export databases of instance")
+    group.add_argument('-i', '--import', action='store', nargs=1, metavar='INSTANCE', help='import databases of instance')
+    group.add_argument('-p', '--prep', action='store', nargs=1, choices=('obfuscation',), metavar='TASK', help='preparation scripts')
+    args = parser.parse_args()
+
+    main(args)
