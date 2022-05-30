@@ -1,43 +1,98 @@
 #!/usr/bin/env python3
-"""
-Module Docstring
-"""
 
-__version__ = "0.1.0"
+__version__ = "0.5.3"
 
 import argparse
 import logging
 import sys
+import json
 
 from cloud_platform import DBaaSAggregator
+from cloud_platform import AppInstance
 from _globals import *
 from _logging import log
 from _logging import log_counter
 
 
-def echo_welcome():
+def load_config(file: Path, mandatory: bool = True) -> dict:
+    """Loads a config file (config.json, mapping.json)"""
+    try:
+        with open(file) as f:
+            config = json.load(f)
+    except Exception as err:
+        if mandatory:
+            script_exit(logging.ERROR, f"Can't read config file: {HOST_WORKDIR}/{file.name}\n{err}")
+        return {}
+    return config
+
+
+def echo_welcome() -> None:
     # Welcome message
-    log.info(f"** {PROG_NAME[1]}, version: {__version__} **\n")
+    log.info(f"** {PROG_NAME[1]}, built: {BUILD_DATA} **\n** Version: {__version__}, {', '.join(VENDOR)}\n")
+
+
+def echo_action_title(msg):
+    # Action title message
+    log.info(f"{msg}\n{'-' * len(msg)}\n")
 
 
 def script_exit(level: int = logging.INFO, msg: str = None) -> None:
     if msg:
         log.log(level, msg)
     log.info(f"\n** Logging file: '{HOST_WORKDIR}/logs/data_pump.log'")
-    log.info(f"** {log_counter.counters}")
+    log.info(f"** Log records: {log_counter.counters}")
     log.info(f"** {PROG_NAME[1]} command end **")
     sys.exit()
 
 
-def main(args):
-    """ Main entry point of the app """
-    echo_welcome()
-    log.error('xxx')
-    script_exit()
+def create_data_config_template(instance_name: str):
+    """Creates data config template file with default 'data' section
+
+    Args:
+        instance_name (str): instance name
+    """
+    global main_config
+
+    instance_cfg = main_config['instances'][instance_name]
+    dbaas_cfg = main_config['dbaas'][instance_cfg['dbaas']]
+    app_inst = AppInstance(**instance_cfg)
+    app_inst.set_dbaas(DBaaSAggregator(**dbaas_cfg))
+    data_config = app_inst.get_data_config()
+    output_file = WORKING_DIR / f'{instance_name}_data_config.json'
+    try:
+        with open(output_file, 'w') as f:
+            json.dump({'data': data_config}, f, indent=4, sort_keys=True)
+            log.info(f"File '{output_file.name}' has been created.")
+    except Exception as err:
+        log.critical(repr(err))
+
+
+def create_mapping(instance_name: str, instance_role: str):
+    """"""
+    global main_config
+
+    instance_cfg = main_config['instances'][instance_name]
+    dbaas_cfg = main_config['dbaas'][instance_cfg['dbaas']]
+    app_inst = AppInstance(role=instance_role, **instance_cfg)
+    app_inst.set_dbaas(DBaaSAggregator(**dbaas_cfg))
+    app_inst.load_data_config(main_config['data'])
+
+    app_inst.mapping_update()
+    db_mapping = app_inst.get_mapping()
+
+    try:
+        with open(MAPPING_FILE, 'w') as f:
+            json.dump({'data': db_mapping}, f, indent=4, sort_keys=True)
+            log.info(f"File '{MAPPING_FILE.name}' has been created.")
+    except Exception as err:
+        log.critical(repr(err))
 
 
 if __name__ == "__main__":
-    """ This is executed when run from the command line """
+    """This is executed when run from the command line"""
+    echo_welcome()
+
+    # Parses an arguments
     help_description = f"{PROG_NAME[1]} utility."
     help_epilog = f"version: {__version__}."
     parser = argparse.ArgumentParser(prog=PROG_NAME[0], description=help_description, epilog=help_epilog)
@@ -50,4 +105,38 @@ if __name__ == "__main__":
     group.add_argument('-p', '--prep', action='store', nargs=1, choices=('obfuscation',), metavar='TASK', help='preparation scripts')
     args = parser.parse_args()
 
-    main(args)
+    # Loads the main config
+    main_config: dict = load_config(CONFIG_FILE)
+
+    # Gets a dictionary with command-line options and arguments
+    vargs: dict = vars(args)
+
+    # Enables DEBUG mode if '-d|--debug' parameter is specified
+    match vargs:
+        case {'debug': True}:
+            log.setLevel(level=logging.DEBUG)
+            log.debug(f"Args: {args}")
+
+    # Handles command-line options
+    match vargs:
+        case {'list': [instance_name]}:
+            echo_action_title(f"List databases of '{instance_name}' instance.")
+            create_data_config_template(instance_name)
+
+        case {'map': [instance_role, instance_name]}:
+            echo_action_title(f"Map databases of '{instance_role}' instance '{instance_name}'.")
+            create_mapping(instance_name, instance_role)
+
+        case {'export': [instance_name]}:
+            echo_action_title(f"Export databases from '{instance_name}' instance.")
+
+        case {'import': [instance_name]}:
+            echo_action_title(f"Import databases to '{instance_name}' instance.")
+
+        case {'prep': [task]}:
+            echo_action_title(f"{task} task will be performed.")
+
+        case _:
+            echo_action_title("Something went wrong, I didn't understand what you want from me...  (-_-)")
+
+    script_exit()

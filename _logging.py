@@ -42,7 +42,7 @@ log_stdout_handler.addFilter(log_stdout_filter)
 # creates a stderr handler
 log_stderr_handler = logging.StreamHandler(sys.stderr)
 log_stderr_handler.setLevel(level=logging.CRITICAL)
-stderr_formatter = logging.Formatter(fmt="[{levelname: ^8}]: {message}", style='{')
+stderr_formatter = logging.Formatter(fmt="[{levelname}]: {message}", style='{')
 log_stderr_handler.setFormatter(stderr_formatter)
 log.addHandler(log_stderr_handler)
 
