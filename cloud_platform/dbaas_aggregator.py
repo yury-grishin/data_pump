@@ -1,7 +1,5 @@
-"""
-DBaaS Aggregator module
-"""
-import logging
+import sys
+import base64
 from dataclasses import dataclass
 import requests.exceptions
 import urllib3
@@ -41,6 +39,14 @@ class DBaaSAggregator:
         self._credentials = credentials
         self._embargo = []
 
+    @staticmethod
+    def is_base64(s):
+        try:
+            base64.b64decode(s, validate=True)
+            return True
+        except Exception:
+            return False
+
     def _request(self, method: str, url: str, data: str = '') -> requests.Response:
         """Requests to DBaaS API
 
@@ -54,16 +60,16 @@ class DBaaSAggregator:
         }
         if self._auth == 'basic' and self.is_base64(self._credentials):
             headers['Authorization'] = f"Basic {self._credentials}"
-        logger.debug(f"Request: method='{method}', url='{url}', headers='{headers}', data='{data}'")
+        log.debug(f"Request: method='{method}', url='{url}', headers='{headers}', data='{data}'")
         try:
             # Disables TLS warnings (urllib3.exceptions.InsecureRequestWarning)
             urllib3.disable_warnings()
             # Requests the API
             response = request(method=method, url=url, headers=headers, data=data, verify=False)
         except Exception as err:
-            logger.error(repr(err))
+            log.error(repr(err))
             sys.exit()
-        logger.debug(f"response code: '{response.status_code}', reason: '{response.reason}', data: '{response.text}'")
+        log.debug(f"response code: '{response.status_code}', reason: '{response.reason}', data: '{response.text}'")
         return response
 
     @property

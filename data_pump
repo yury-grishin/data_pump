@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Module Docstring
-"""
 
 __version__ = "0.1.0"
 
@@ -24,7 +21,7 @@ def script_exit(level: int = logging.INFO, msg: str = None) -> None:
     if msg:
         log.log(level, msg)
     log.info(f"\n** Logging file: '{HOST_WORKDIR}/logs/data_pump.log'")
-    log.info(f"** {log_counter.counters}")
+    log.info(f"** Log records: {log_counter.counters}")
     log.info(f"** {PROG_NAME[1]} command end **")
     sys.exit()
 
