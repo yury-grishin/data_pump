@@ -1,13 +1,15 @@
 import logging
 import logging.handlers
 import sys
+from typing import Dict
+
 from _globals import *
 
 
 class LogCounterFilter(logging.Filter):
     def __init__(self) -> None:
         super().__init__()
-        self.counters = {}
+        self.counters: Dict[str, int] = {}
 
     def filter(self, record: logging.LogRecord) -> bool:
         if record.levelno > logging.INFO:

@@ -3,7 +3,7 @@ from pathlib import Path
 
 VENDOR = ('2022', 'Netcracker')
 PROG_NAME = ('data_pump', 'Cloud Data Pump')
-WORKING_DIR = Path('C:\\GRISHIN\\IT_NOTES\\PROJECTS\\py\\u02')
+WORKING_DIR = Path('C:\\GRISHIN\\IT_NOTES\\PROJECTS\\CDP\\u02')
 LOG_FILE = WORKING_DIR / 'logs' / 'data_pump.log'
 CONFIG_FILE = WORKING_DIR / 'config.json'
 MAPPING_FILE = WORKING_DIR / 'mapping.json'
